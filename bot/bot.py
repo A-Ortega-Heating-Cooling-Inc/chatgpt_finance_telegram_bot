@@ -70,6 +70,7 @@ def split_text_into_chunks(text, chunk_size):
 
 
 async def register_user_if_not_exists(update: Update, context: CallbackContext, user: User):
+    print("Hello there, I'm testing live reload")
     if not db.check_if_user_exists(user.id):
         db.add_new_user(
             user.id,

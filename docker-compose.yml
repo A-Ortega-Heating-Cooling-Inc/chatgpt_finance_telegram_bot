@@ -13,13 +13,19 @@ services:
 
   chatgpt_telegram_bot:
     container_name: chatgpt_telegram_bot
-    command: python3 bot/bot.py
+    command: python3 watcher.py #change to 'bot/bot.py' for production
     restart: always
     build:
       context: "."
       dockerfile: Dockerfile
     depends_on:
       - mongo
+    volumes:
+      - .:/code # Maps the entire project directory to /code in the container
+    environment:
+      # Add any environment variables for development here
+      - PYTHONUNBUFFERED=1 # Ensures Python output is displayed in the Docker logs
+
 
   mongo_express:
     container_name: mongo-express

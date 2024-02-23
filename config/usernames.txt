@@ -1,0 +1,2 @@
+#WARNING: YOU NEED TO MANUALLY ADDED USERNAMES INTO config.yml:
+["Loveit26", "AleksandrM0]
