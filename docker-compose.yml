@@ -25,6 +25,7 @@ services:
     environment:
       # Add any environment variables for development here
       - PYTHONUNBUFFERED=1 # Ensures Python output is displayed in the Docker logs
+      - DATABASE_URL=${DATABASE_URL}
 
 
   mongo_express:

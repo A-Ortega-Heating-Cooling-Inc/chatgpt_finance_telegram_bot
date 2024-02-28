@@ -1,0 +1,151 @@
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  email    String @unique
+  password String
+}
+
+// schema.prisma
+
+model Customer {
+  id           Int       @id @default(autoincrement())
+  title        String?
+  firstName    String
+  middleName   String?
+  lastName     String
+  suffix       String?
+  companyName  String?
+  email        String?
+  phoneNumber  String?
+  mobileNumber String?
+  // fax          String?
+  other        String?
+  // website      String?
+  notes        String?
+  addresses    Address[]
+  invoices     Invoice[]
+  quotes       Quote[]
+  files        File[]
+}
+
+model Address {
+  id             Int      @id @default(autoincrement())
+  streetAddress1 String
+  streetAddress2 String?
+  city           String
+  state          String
+  zip            String
+  country        String
+  customerId     Int
+  latitude       Float?
+  longitude      Float?
+  customer       Customer @relation(fields: [customerId], references: [id])
+}
+
+model Service {
+  id        Int      @id @default(autoincrement())
+  name      String
+  quantity  Int
+  rate      Float
+  amount    Float
+  tax       Boolean
+  Invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId Int?
+  Quote     Quote?   @relation(fields: [quoteId], references: [id])
+  quoteId   Int?
+}
+
+model ServiceTemplate {
+  id       Int     @id @default(autoincrement())
+  name     String
+  quantity Int
+  rate     Float
+  amount   Float
+  tax      Boolean
+}
+
+model InventoryItem {
+  id            Int                   @id @default(autoincrement())
+  name          String
+  description   String?
+  quantity      Int
+  price         Float
+  linkToPicture String
+  changes       InventoryItemChange[]
+  deleted       Boolean               @default(false)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+}
+
+model InventoryItemChange {
+  id              Int           @id @default(autoincrement())
+  inventoryItemId Int
+  fieldName       String // Name of the field that changed
+  oldValue        String? // Previous value of the field
+  newValue        String? // New value of the field
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  createdAt       DateTime      @default(now())
+}
+
+model Quote {
+  id         Int       @id @default(autoincrement())
+  customer   Customer  @relation(fields: [customerId], references: [id])
+  customerId Int
+  quoteDate  DateTime
+  validDate  DateTime
+  tags       String?
+  services   Service[]
+  total      Float
+}
+
+model Invoice {
+  id          Int           @id @default(autoincrement())
+  customer    Customer      @relation(fields: [customerId], references: [id])
+  customerId  Int
+  invoiceDate DateTime
+  dueDate     DateTime
+  // terms       String
+  tags        String?
+  services    Service[]
+  total       Float
+  balance     Float
+  PaymentForm PaymentForm[]
+}
+
+model PaymentForm {
+  id        Int      @id @default(autoincrement())
+  name      String
+  amount    Float
+  Invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId Int?
+}
+
+model File {
+  id         Int       @id @default(autoincrement())
+  name       String
+  link       String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  Customer   Customer? @relation(fields: [customerId], references: [id])
+  customerId Int?
+}
+
+// Define the relationships between Customer, Invoice, and Service
+// Each Customer can have multiple Invoices
+// Each Invoice belongs to one Customer
+// Each Invoice can have multiple Services
+// Each Service belongs to one Invoice

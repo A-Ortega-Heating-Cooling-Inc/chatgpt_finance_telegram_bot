@@ -206,6 +206,25 @@ async def message_handle(update: Update, context: CallbackContext, message=None,
         return
 
     async def message_handle_fn():
+
+        async def update_placeholder_periodically(step):
+            animation_steps = [". . .", ". . ·", ". · ·", "· · ·", "· · .", "· . ."]
+            while not is_finished:
+                # Update the placeholder message here with the desired content
+                # For example, you can show a progress message or keep editing the same message to indicate processing
+                try:
+                    await context.bot.edit_message_text(animation_steps[step + 1],
+                                                        chat_id=placeholder_message.chat_id,
+                                                        message_id=placeholder_message.message_id,
+                                                        parse_mode=ParseMode.HTML)
+
+                    step = (step + 1) % len(animation_steps)
+                except Exception as e:
+                    # Handle specific exceptions like message not modified or rate limits
+                    pass
+                await asyncio.sleep(0.01)  # Wait for 0.1 second before the next update
+
+
         # new dialog timeout
         if use_new_dialog_timeout:
             if (datetime.now() - db.get_user_attribute(user_id, "last_interaction")).seconds > config.new_dialog_timeout and len(db.get_dialog_messages(user_id)) > 0:
@@ -217,15 +236,20 @@ async def message_handle(update: Update, context: CallbackContext, message=None,
         n_input_tokens, n_output_tokens = 0, 0
         current_model = db.get_user_attribute(user_id, "current_model")
 
+        is_finished = False
+
         try:
             # send placeholder message to user
-            placeholder_message = await update.message.reply_text("...")
+            placeholder_message = await update.message.reply_text(". . .")
+            placeholder_update_task = asyncio.create_task(update_placeholder_periodically(0))
 
             # send typing action
             await update.message.chat.send_action(action="typing")
 
             if _message is None or len(_message) == 0:
                  await update.message.reply_text("🥲 You sent <b>empty message</b>. Please, try again!", parse_mode=ParseMode.HTML)
+                 is_finished = True
+                 await placeholder_update_task  # Wait for the task to complete its current iteration and exit
                  return
 
             dialog_messages = db.get_dialog_messages(user_id, dialog_id=None)
@@ -251,7 +275,14 @@ async def message_handle(update: Update, context: CallbackContext, message=None,
 
             prev_answer = ""
             async for gen_item in gen:
+
+
+                is_finished = True
+                await placeholder_update_task  # Wait for the task to complete its current iteration and exit
+
                 status, answer, (n_input_tokens, n_output_tokens), n_first_dialog_messages_removed = gen_item
+
+                if status != "finished": answer = answer + " █"
 
                 answer = answer[:4096]  # telegram message limit
 
@@ -268,6 +299,8 @@ async def message_handle(update: Update, context: CallbackContext, message=None,
                         await context.bot.edit_message_text(answer, chat_id=placeholder_message.chat_id, message_id=placeholder_message.message_id)
 
                 await asyncio.sleep(0.01)  # wait a bit to avoid flooding
+
+
 
                 prev_answer = answer
 
